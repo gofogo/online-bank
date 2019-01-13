@@ -1,0 +1,14 @@
+.git/
+node_modules/
+.vscode/
+.nyc_output/
+coverage/
+compose/
+.editorconfig
+.eslintrc.json
+.gitignore
+.travis.yml
+scripts/
+Dockerfile.*
+.gitattributes
+package-lock.json
