@@ -1,0 +1,6 @@
+# decrease size of build context
+/.git
+/.vscode
+**/build
+
+service-payment

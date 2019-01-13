@@ -1,0 +1,100 @@
+---
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Payment Service
+  description: An API for payment servcie
+
+host: "localhost:8080"
+schemes:
+  - http
+produces:
+  - application/json
+consumes:
+  - application/json
+
+paths:
+  /health:
+    get:
+      summary: Check the health of the service
+      description: Returns a message indicating the health of the service
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Service is up and running
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Contains the string "OK"
+        500:
+          description: Server Error
+  /payment/:
+    post:
+      summary: |
+       Creates and sends an immediate payment to current account. The recepient must be a payee.
+      description: Provide a service to debit current account
+      tags:
+        - Payment
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          description: Data relating to the event at the point-of-time
+          schema:
+            $ref: "#/definitions/Payment"
+      responses:
+        202:
+          description: Received was received ok and will process shortly.
+          schema:
+              $ref: "#/definitions/Response"
+        404:
+          description: Operation failed
+        500:
+          description: Server Error
+
+
+definitions:
+ Payment:
+   type: object
+   description: Request to make a payment
+   properties:
+     destinationAccountUId:
+       type: string
+       description: Account UUID
+     payeeUId:
+       type: string
+       description: Account UUID
+     amount:
+       type: integer
+       description: Amount to debit/withdrawn
+
+ Response:
+    type: object
+    description: Successful operation
+    properties:
+      paymentUId:
+        type: string
+        description: UUID of the feed item
+      destinationAccountUId:
+        type: string
+        description: Account Number
+      amount:
+        type: string
+        description: Ammount authorized for action
+      created:
+        type: string
+        format: "date-time"
+        description: A descrite event that happen at a point in time
+      status:
+        type: string
+        description: Possible status values
+        enum:
+        - accepted
+        - authorized
+        - complete

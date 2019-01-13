@@ -1,0 +1,83 @@
+---
+version: '3.6'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    restart: unless-stopped
+    ports:
+      - "2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - default
+
+  kafka:
+    image:  wurstmeister/kafka:latest
+    restart: on-failure
+    depends_on:
+      - zookeeper
+    links:
+     - zookeeper:zk
+    ports:
+       - target: 9094
+         published: 9094
+         protocol: tcp
+         mode: host
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME:
+      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://_{HOSTNAME_COMMAND}:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 1
+      KAFKA_MESSAGE_MAX_BYTES: 10000000
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 10000000
+      KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS: 60000
+      KAFKA_NUM_PARTITIONS: 2
+      KAFKA_DELETE_RETENTION_MS: 1000
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: "balance:1:1,payment:1:1,transactions:1:1"
+    networks:
+      - default
+
+  kafka-manager-zookeeper:
+    image: hlebalbau/kafka-manager:stable
+    restart: on-failure
+    ports:
+     - "9000:9000"
+    # volumes:
+    #   - ./config/manager/:/kafka-manager/conf/
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      ZK_HOSTS: zookeeper:2181
+      APPLICATION_SECRET: letmein
+    command: -Dpidfile.path=/dev/null -Dconfig.file=/kafka-manager/conf/application.conf
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+     - "8080:8080"
+    depends_on:
+      - kafka
+    # volumes:
+    #   - .:/app
+    environment:
+      VERSION: v0.3
+      PORT: 8080
+      KAFKA_PEERS: kafka:9092
+      KAFKA_TOPICS: payment
+    networks:
+        - default
+networks:
+  default:
